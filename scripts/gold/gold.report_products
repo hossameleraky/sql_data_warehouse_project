@@ -1,0 +1,59 @@
+create view gold.report_products as 
+with base_query as (
+select
+f.order_number,
+f.customer_key,
+f.order_date,
+f.sales_amount,
+f.quantity,
+d.product_key,
+d.product_name,
+d.category,
+d.subcategory,
+d.cost
+from gold.fact_sales f
+left join gold.dim_Products d
+on f.product_key = d.product_key
+)
+, products_aggrecation as (
+select
+product_key,
+product_name,
+category,
+subcategory,
+cost,
+count(distinct order_number) as total_order ,
+count(distinct customer_key) as total_customer,
+sum(sales_amount)as total_sales,
+sum(quantity)as total_quantity,
+datediff(month , min(order_date),max(order_date))as lifespan,
+max(order_date) as last_sales_date,
+round(avg(cast(sales_amount as float) / nullif(quantity,0)),1) as avg_selling_price
+from base_query
+group by 
+product_key,
+product_name,
+category,
+subcategory,
+cost
+)
+select 
+product_key,
+product_name,
+category,
+subcategory,
+cost,
+lifespan,
+last_sales_date,
+avg_selling_price,
+datediff(month,last_sales_date,getdate() ) as recency_in_months ,
+case
+	when total_sales >  50000 then 'high_performer'
+	when total_sales >= 10000 then 'mid_range'
+	else 'low_performer'
+end product_segment,
+total_order ,
+total_customer,
+total_sales,
+total_quantity
+from products_aggrecation
