@@ -13,7 +13,7 @@ go
 create schema bronze;
 go
   
-create schema server;
+create schema silver;
 go
   
 create schema gold;
